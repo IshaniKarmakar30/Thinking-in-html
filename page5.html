@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduction to Generative AI & Web Technologies</title>
+<style>
+:root{--bg:#0f172a;--panel:#1e293b;--text:#f1f5f9;--muted:#94a3b8;--accent:#38bdf8;--accent2:#a78bfa;--ok:#22c55e;--bad:#ef4444}
+@media (prefers-color-scheme: light){:root{--bg:#f1f5f9;--panel:#fff;--text:#0f172a;--muted:#475569;--accent:#0369a1;--accent2:#6d28d9;--ok:#15803d;--bad:#b91c1c}}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+#app{display:flex;flex-direction:column;height:100%}
+#stage{position:relative;flex:1;overflow:hidden;touch-action:pan-y}
+.slide{position:absolute;inset:0;padding:4vh 7vw;display:flex;flex-direction:column;justify-content:center;opacity:0;visibility:hidden;transform:translateX(60px);transition:opacity .5s,transform .5s,visibility .5s;overflow-y:auto}
+.slide.active{opacity:1;visibility:visible;transform:none}
+.slide.prev{transform:translateX(-60px)}
+h1{font-size:clamp(1.8rem,5vw,3.6rem);line-height:1.15;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font-size:clamp(1.4rem,3.6vw,2.4rem);margin-bottom:2vh;color:var(--accent)}
+p.sub{color:var(--muted);font-size:clamp(1rem,2vw,1.4rem);margin-top:2vh}
+ul{list-style:none;font-size:clamp(1rem,2.2vw,1.5rem);line-height:1.5}
+li{margin:1.1vh 0;padding-left:1.4em;position:relative}
+li::before{content:"▸";position:absolute;left:0;color:var(--accent2)}
+.active li{animation:in .5s both}.active li:nth-child(2){animation-delay:.12s}.active li:nth-child(3){animation-delay:.24s}.active li:nth-child(4){animation-delay:.36s}.active li:nth-child(5){animation-delay:.48s}
+@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.card{background:var(--panel);border-radius:14px;padding:16px;border-top:3px solid var(--accent)}
+.card b{display:block;color:var(--accent);margin-bottom:6px;font-size:1.1rem}
+.card span{color:var(--muted);font-size:.95rem}
+code{background:var(--panel);padding:2px 6px;border-radius:5px;color:var(--accent2)}
+pre{background:var(--panel);padding:14px;border-radius:10px;overflow-x:auto;font-size:clamp(.75rem,1.6vw,1rem);margin-top:2vh;color:var(--accent2)}
+#bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--panel);flex-wrap:wrap}
+button,select{font:inherit;background:var(--bg);color:var(--text);border:1px solid var(--muted);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover,select:hover{border-color:var(--accent)}
+button:focus-visible,select:focus-visible{outline:2px solid var(--accent)}
+#count{color:var(--muted);min-width:56px;text-align:center}
+.sp{flex:1}
+#prog{height:4px;background:var(--accent);width:0;transition:width .4s}
+/* chart */
+.ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+.ctrl label{display:flex;gap:6px;align-items:center;cursor:pointer;padding:4px 10px;border-radius:20px;background:var(--panel)}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+#chart{width:100%;max-height:44vh;background:var(--panel);border-radius:12px}
+#chart rect.b{transform-box:fill-box;transform-origin:bottom;transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .4s;cursor:pointer}
+#chart text{fill:var(--muted);font-size:12px}
+#read{color:var(--muted);min-height:1.5em;margin-top:6px}
+/* quiz */
+.q{background:var(--panel);border-radius:14px;padding:14px 18px;margin-bottom:12px}
+.q h3{font-size:clamp(1rem,2.2vw,1.3rem);margin-bottom:8px}
+.opt{display:block;width:100%;text-align:left;margin:6px 0}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 25%,transparent)}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 25%,transparent)}
+.fb{margin-top:6px;min-height:1.3em;font-size:.95rem}
+#score{font-size:1.2rem;color:var(--accent);margin-top:4px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <section class="slide">
+      <h1>Introduction to Generative AI &amp; Web Technologies</h1>
+      <p class="sub">Technical College Seminar · Use ← → keys, swipe, or the buttons below</p>
+    </section>
+
+    <section class="slide">
+      <h2>What is Generative AI?</h2>
+      <ul>
+        <li>AI that <b>creates new content</b>: text, images, code, audio, video</li>
+        <li>Learns patterns from huge datasets instead of following hand-written rules</li>
+        <li>Differs from traditional AI, which mostly classifies or predicts</li>
+        <li>Prompts in, original-looking output out</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>How Does It Work?</h2>
+      <div class="cards">
+        <div class="card"><b>1. Train</b><span>Model learns statistical patterns from massive text, image or code corpora.</span></div>
+        <div class="card"><b>2. Tokenize</b><span>Input is split into small pieces (tokens) and turned into numbers.</span></div>
+        <div class="card"><b>3. Predict</b><span>A transformer predicts the most likely next token, again and again.</span></div>
+        <div class="card"><b>4. Generate</b><span>Tokens are decoded back into readable text, pixels or audio.</span></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>Types of Generative Models</h2>
+      <ul>
+        <li><b>LLMs</b> (transformers): chat, writing, summarizing, coding help</li>
+        <li><b>Diffusion models</b>: image generation by gradually denoising</li>
+        <li><b>GANs</b>: two networks compete to produce realistic samples</li>
+        <li><b>Multimodal models</b>: combine text, images, audio in one system</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>Interactive Chart: Adoption by Modality</h2>
+      <div class="ctrl" id="ctrl"></div>
+      <svg id="chart" viewBox="0 0 600 270" role="img" aria-label="Bar chart of illustrative generative AI adoption index by modality and year"></svg>
+      <div id="read">Tap or hover a bar. Toggle datasets above. (Illustrative sample data, not real statistics.)</div>
+    </section>
+
+    <section class="slide">
+      <h2>Web Technologies: The Foundation</h2>
+      <div class="cards">
+        <div class="card"><b>HTML</b><span>Structure and meaning of the page.</span></div>
+        <div class="card"><b>CSS</b><span>Layout, style, responsive design, animation.</span></div>
+        <div class="card"><b>JavaScript</b><span>Interactivity, logic, talking to servers.</span></div>
+        <div class="card"><b>HTTP / APIs</b><span>How browsers and servers exchange data.</span></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>Where GenAI Meets the Web</h2>
+      <ul>
+        <li>Web apps call AI models through <b>REST APIs</b> using <code>fetch()</code></li>
+        <li>Responses can be <b>streamed</b> to show text as it is generated</li>
+        <li>AI assists developers: code completion, debugging, UI drafts</li>
+        <li>Keep API keys on a <b>server</b>, never in browser code</li>
+      </ul>
+      <pre>const res = await fetch("/api/chat", {
+  method: "POST",
+  body: JSON.stringify({ prompt })
+});
+const data = await res.json();</pre>
+    </section>
+
+    <section class="slide">
+      <h2>Responsible Use</h2>
+      <ul>
+        <li><b>Hallucinations</b>: outputs can be fluent but wrong, so verify facts</li>
+        <li><b>Bias &amp; privacy</b>: models mirror their data; don't paste sensitive info</li>
+        <li><b>Copyright &amp; integrity</b>: cite AI help and follow college policy</li>
+        <li>Treat AI as an assistant, not a replacement for understanding</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>Mini Quiz</h2>
+      <div id="quiz"></div>
+      <div id="score"></div>
+      <div><button id="retry" hidden>Retry quiz</button></div>
+    </section>
+  </div>
+  <div id="prog"></div>
+  <div id="bar">
+    <button id="prev" aria-label="Previous slide">◀ Prev</button>
+    <span id="count">1 / 9</span>
+    <button id="next" aria-label="Next slide">Next ▶</button>
+    <span class="sp"></span>
+    <select id="jump" aria-label="Jump to slide"></select>
+    <button id="fs" aria-label="Toggle fullscreen">⛶ Fullscreen</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const slides=[...document.querySelectorAll('.slide')], N=slides.length;
+  const titles=["Title","What is Generative AI?","How Does It Work?","Types of Models","Adoption Chart","Web Technologies","GenAI Meets the Web","Responsible Use","Mini Quiz"];
+  const jump=document.getElementById('jump'), count=document.getElementById('count'), prog=document.getElementById('prog');
+  let cur=0;
+  titles.forEach((t,i)=>jump.add(new Option((i+1)+". "+t,i)));
+
+  function go(n){
+    n=Math.max(0,Math.min(N-1,n));
+    slides.forEach((s,i)=>{
+      s.classList.toggle('active',i===n);
+      s.classList.toggle('prev',i<n);
+      s.setAttribute('aria-hidden',i!==n);
+    });
+    cur=n; jump.value=n;
+    count.textContent=(n+1)+" / "+N;
+    prog.style.width=((n+1)/N*100)+"%";
+    document.getElementById('prev').disabled=n===0;
+    document.getElementById('next').disabled=n===N-1;
+  }
+  document.getElementById('prev').onclick=()=>go(cur-1);
+  document.getElementById('next').onclick=()=>go(cur+1);
+  jump.onchange=()=>go(+jump.value);
+
+  document.addEventListener('keydown',e=>{
+    if(e.target.tagName==='SELECT')return;
+    if(e.key==='ArrowRight'||e.key==='PageDown')go(cur+1);
+    else if(e.key==='ArrowLeft'||e.key==='PageUp')go(cur-1);
+    else if(e.key==='Home')go(0);
+    else if(e.key==='End')go(N-1);
+    else if(e.key==='f'||e.key==='F')toggleFS();
+  });
+
+  // touch swipe
+  let sx=0,sy=0;
+  const stage=document.getElementById('stage');
+  stage.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+  stage.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5)go(cur+(dx<0?1:-1));
+  },{passive:true});
+
+  // fullscreen
+  function toggleFS(){
+    try{
+      if(!document.fullscreenElement)document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }catch(e){}
+  }
+  document.getElementById('fs').onclick=toggleFS;
+
+  // chart
+  const years=[2022,2023,2024,2025];
+  const series=[
+    {n:"Text / Chat",c:"#38bdf8",v:[20,45,70,88],on:true},
+    {n:"Images",c:"#a78bfa",v:[10,35,55,72],on:true},
+    {n:"Code",c:"#22c55e",v:[8,30,58,80],on:true},
+    {n:"Audio / Video",c:"#f59e0b",v:[2,12,30,50],on:true}
+  ];
+  const svg=document.getElementById('chart'), ctrl=document.getElementById('ctrl'), read=document.getElementById('read');
+  const NS="http://www.w3.org/2000/svg", H=200, TOP=15, BASE=TOP+H, GW=140, BW=26, GAP=5;
+  let h='';
+  [0,25,50,75,100].forEach(g=>{const y=BASE-g/100*H;h+=`<line x1="40" x2="590" y1="${y}" y2="${y}" stroke="currentColor" opacity=".15"/><text x="34" y="${y+4}" text-anchor="end">${g}</text>`});
+  years.forEach((yr,yi)=>{h+=`<text x="${40+yi*GW+GW/2}" y="${BASE+20}" text-anchor="middle">${yr}</text>`});
+  svg.innerHTML=h;
+  const rects=[];
+  series.forEach((s,si)=>{
+    rects[si]=years.map((yr,yi)=>{
+      const r=document.createElementNS(NS,'rect');
+      r.setAttribute('class','b');
+      r.setAttribute('x',40+yi*GW+(GW-4*BW-3*GAP)/2+si*(BW+GAP));
+      r.setAttribute('y',TOP);r.setAttribute('width',BW);r.setAttribute('height',H);
+      r.setAttribute('rx',4);r.setAttribute('fill',s.c);
+      const show=()=>{read.textContent=`${s.n}, ${yr}: adoption index ${s.v[yi]} / 100 (illustrative)`};
+      r.addEventListener('mouseenter',show);r.addEventListener('click',show);
+      svg.appendChild(r);return r;
+    });
+    const l=document.createElement('label');
+    l.innerHTML=`<input type="checkbox" checked><span class="sw" style="background:${s.c}"></span>${s.n}`;
+    l.querySelector('input').onchange=e=>{s.on=e.target.checked;draw()};
+    ctrl.appendChild(l);
+  });
+  const sh=document.createElement('button');
+  sh.textContent="🎲 Shuffle values";
+  sh.onclick=()=>{series.forEach(s=>{s.v=s.v.map(()=>Math.round(5+Math.random()*95))});read.textContent="Values randomized (demo only).";draw()};
+  ctrl.appendChild(sh);
+  function draw(){
+    series.forEach((s,si)=>rects[si].forEach((r,yi)=>{
+      r.style.transform=`scaleY(${s.on?s.v[yi]/100:0})`;
+      r.style.opacity=s.on?1:0;
+    }));
+  }
+  draw();
+
+  // quiz
+  const Q=[
+    {q:"What does an LLM mainly do when generating text?",o:["Searches a database for exact answers","Predicts the next token repeatedly","Copies text from the internet live","Runs a fixed set of if-else rules"],a:1,e:"LLMs generate text by predicting the next token, one after another."},
+    {q:"Where should an AI API key be stored in a web app?",o:["In client-side JavaScript","In the HTML comments","On a secure server backend","In the page URL"],a:2,e:"Keys in browser code can be stolen by anyone; call the AI API from your server."}
+  ];
+  const quiz=document.getElementById('quiz'), score=document.getElementById('score'), retry=document.getElementById('retry');
+  let pts=0, done=0;
+  function build(){
+    pts=0;done=0;score.textContent="";retry.hidden=true;quiz.innerHTML="";
+    Q.forEach((item,qi)=>{
+      const d=document.createElement('div');d.className='q';
+      d.innerHTML=`<h3>Q${qi+1}. ${item.q}</h3>`;
+      const fb=document.createElement('div');fb.className='fb';
+      const btns=item.o.map((t,oi)=>{
+        const b=document.createElement('button');b.className='opt';b.textContent=t;
+        b.onclick=()=>{
+          btns.forEach(x=>x.disabled=true);
+          btns[item.a].classList.add('ok');
+          if(oi===item.a){pts++;fb.innerHTML="✅ <b>Correct!</b> "+item.e}
+          else{b.classList.add('bad');fb.innerHTML="❌ <b>Not quite.</b> "+item.e}
+          if(++done===Q.length){score.textContent=`Score: ${pts} / ${Q.length}${pts===Q.length?" 🎉 Perfect!":""}`;retry.hidden=false}
+        };
+        d.appendChild(b);return b;
+      });
+      d.appendChild(fb);quiz.appendChild(d);
+    });
+  }
+  retry.onclick=build;build();
+  go(0);
+})();
+</script>
+</body>
+</html>

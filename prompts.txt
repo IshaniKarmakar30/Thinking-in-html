@@ -1,0 +1,81 @@
+Page 1: Revision or Teaching Dashboard 
+
+Who: Me, a BCA student preparing for upcoming semester exams.
+What: A Revision & Teaching Dashboard for Computer Networks / Operating Systems. It must include:
+1. A countdown timer to the exam date.
+2. A revision checklist of 6 topics.
+3. Interactive 3D flip-cards for quick revision formulas/definitions.
+4. A 5-question multiple choice quiz with instant score calculation.
+5. A study progress bar.
+Do: Provide 5+ interactive features:
+1. Countdown timer with set/pause/reset controls.
+2. Checklist checkboxes that live-update the progress bar percentage.
+3. Flip-cards that flip on click to show definitions.
+4. Interactive quiz options where clicking evaluates correct/incorrect and shows total score.
+5. Dark mode / Light mode toggle switch.
+Rules:
+- Deliver one complete, standalone HTML file in a single code block containing internal CSS and JavaScript.
+- Fully mobile-responsive and desktop-friendly.
+- No external JS libraries; clean vanilla JS and modern UI design.
+
+Page 2: Money Explorer
+
+Who: Me, planning and tracking my monthly college hostel and personal budget.
+What: An interactive Money Explorer with sample expense data. It must show:
+1. Category-wise expense breakdown (Food, Books, Travel, Bills, Others).
+2. Interactive dynamic SVG/Canvas bar chart.
+3. Savings target calculator.
+4. A "Possible duplicate transactions" warning alert section.
+Do: Provide 5+ interactive features:
+1. Category filter dropdown to filter transactions.
+2. A live savings target range slider that updates saved vs remaining balance instantly.
+3. "Confirm" and "Dismiss" buttons for flagged duplicate transactions.
+4. "Add Expense" input modal/form that dynamically appends items to the list and recalculates totals.
+5. Reset filter button to restore initial sample state.
+Rules:
+- Deliver one complete HTML file in a single code block with embedded CSS and JS.
+- Fully responsive for mobile and desktop screens.
+- Clean UI with cards, smooth animations, and realistic sample data.
+
+Page 3: Interactive 2D / 3D Model
+
+Who: Me, studying an interactive science/physics concept.
+What: An interactive 2D/3D Solar System simulation using HTML5 Canvas or SVG/CSS3 3D transforms. It must display the Sun and at least 5 orbiting planets with labels and orbit paths.
+Do: Provide 5+ interactive features:
+1. Orbit speed slider (from 0.5x to 5x speed).
+2. Play / Pause animation toggle button.
+3. Clickable planets that open an info popup/card showing distance, size, and facts.
+4. Zoom In / Zoom Out buttons (or zoom slider) to scale the canvas.
+5. Toggle buttons to show/hide orbit lines and planet labels.
+Rules:
+- Deliver one complete HTML file in a single code block with all styles and scripts embedded.
+- Completely responsive on mobile and desktop touch/click.
+- Must not crash or lag; optimize animations using requestAnimationFrame.
+
+Page 4: Decision Helper
+
+Who: Me, deciding between 4 tech career paths / project frameworks to learn next.
+What: A live Decision Helper matrix comparing 4 options (e.g., Full Stack Web, AI/ML, Cloud DevOps, Mobile App Dev) across criteria like Learning Curve, Market Demand, Salary Potential, and Personal Interest.
+Do: Provide 5+ interactive features:
+1. Weightage sliders for each criterion (0 to 100%) that automatically recalculate total weighted scores.
+2. Real-time dynamic re-ordering/re-ranking animation of the cards as sliders change.
+3. "Add New Option" or "Customize Name" button.
+4. Category highlight badges (e.g., Top Ranked badge on the #1 card).
+5. "Reset Weights to Default" button.
+Rules:
+- Output as one complete HTML file in a single code block containing HTML, CSS, and JS.
+- Mobile responsive, card-based modern UI with progress bars or meter indicators.
+
+Page 5: Interactive Presentation
+
+Who: Me, delivering a technical college presentation on "Introduction to Generative AI & Web Technologies".
+What: An 8 to 10 slide interactive presentation deck with slide transitions, key points, an interactive dynamic chart, and a mini-quiz at the end.
+Do: Provide 5+ interactive features:
+1. Next/Previous navigation buttons plus Keyboard arrow key listener (Left/Right arrows).
+2. Slide thumbnail grid or jump-to dropdown menu.
+3. Fullscreen toggle button.
+4. An interactive interactive chart on slide 5 where users can toggle dataset values.
+5. A 2-question interactive quiz on the final slide with instant feedback.
+Rules:
+- One complete HTML file in a single code block with internal CSS and JavaScript.
+- Responsive design supporting keyboard, mouse clicks, and mobile touch swipes/buttons.

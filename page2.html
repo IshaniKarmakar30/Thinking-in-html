@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Money Explorer</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--text:#1e2433;--mute:#6b7280;--line:#e5e7eb;--accent:#4f46e5;--warn-bg:#fff7ed;--warn-line:#fdba74;--ok:#10b981;--bad:#ef4444;--shadow:0 4px 18px rgba(30,36,51,.07)}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1220;--card:#181c2e;--text:#e8eaf2;--mute:#98a0b8;--line:#2a2f47;--accent:#818cf8;--warn-bg:#2a2013;--warn-line:#a15c1a;--shadow:0 4px 18px rgba(0,0,0,.3)}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.45}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 14px 60px}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px}
+h1{font-size:1.5rem;margin:0}h1 small{display:block;font-size:.8rem;font-weight:400;color:var(--mute)}
+h2{font-size:1.02rem;margin:0 0 12px}
+.card{background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow);animation:rise .5s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.grid{display:grid;gap:14px}
+.stats{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:14px}
+.stat .l{font-size:.78rem;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.stat .v{font-size:1.5rem;font-weight:700;margin-top:2px;transition:color .3s}
+.main{grid-template-columns:1fr 1fr}
+@media(max-width:820px){.main{grid-template-columns:1fr}}
+.full{grid-column:1/-1}
+button,select,input{font:inherit;color:var(--text)}
+.btn{border:0;border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:600;background:var(--accent);color:#fff;transition:transform .15s,opacity .2s}
+.btn:hover{opacity:.9}.btn:active{transform:scale(.96)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.btn.sm{padding:6px 10px;font-size:.82rem}
+.btn.danger{background:var(--bad)}.btn.ok{background:var(--ok)}
+select,input[type=text],input[type=number],input[type=date]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+/* category breakdown */
+.cat{margin-bottom:11px;cursor:pointer}
+.cat .row{display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:4px}
+.cat .row span:first-child{display:flex;align-items:center;gap:7px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.track{height:9px;background:var(--line);border-radius:6px;overflow:hidden}
+.fill{height:100%;border-radius:6px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+/* chart */
+svg{width:100%;height:auto;display:block}
+.bar{transform-box:fill-box;transform-origin:bottom;animation:grow .7s cubic-bezier(.2,.8,.2,1) both;cursor:pointer;transition:opacity .25s}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.bar:hover{filter:brightness(1.12)}
+.axis{stroke:var(--line)}.lbl{fill:var(--mute);font-size:12px}.val{fill:var(--text);font-size:12px;font-weight:600}
+/* savings */
+.field{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.field label{font-size:.78rem;color:var(--mute);display:block;margin-bottom:3px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.stack{display:flex;height:16px;border-radius:9px;overflow:hidden;background:var(--line);margin:10px 0 8px}
+.stack div{transition:width .35s ease}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.84rem}
+.msg{margin-top:10px;padding:9px 12px;border-radius:10px;font-size:.88rem;font-weight:500;transition:background .3s}
+.msg.good{background:rgba(16,185,129,.14);color:var(--ok)}.msg.bad{background:rgba(239,68,68,.14);color:var(--bad)}
+/* duplicates */
+.dup{background:var(--warn-bg);border:1px solid var(--warn-line)}
+.dupitem{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px dashed var(--warn-line);animation:rise .35s ease both}
+.dupitem:first-of-type{border-top:0}
+.dupitem small{color:var(--mute);display:block}
+.actions{display:flex;gap:6px}
+.none{color:var(--ok);font-weight:600;font-size:.92rem}
+/* list */
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.tools select{width:auto;min-width:140px}.tools .sp{flex:1}
+.tx{display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid var(--line);animation:rise .35s ease both}
+.tx .info{flex:1;min-width:0}.tx .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx .info small{color:var(--mute)}
+.tag{font-size:.72rem;padding:2px 8px;border-radius:20px;color:#fff;margin-left:6px;vertical-align:middle}
+.amt{font-weight:700;white-space:nowrap}
+.x{background:none;border:0;color:var(--mute);cursor:pointer;font-size:1.1rem;padding:4px}.x:hover{color:var(--bad)}
+.empty{text-align:center;color:var(--mute);padding:22px 0}
+/* modal */
+dialog{border:0;border-radius:18px;padding:20px;width:min(420px,92vw);background:var(--card);color:var(--text);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog[open]{animation:rise .25s ease}
+dialog::backdrop{background:rgba(10,12,25,.55);backdrop-filter:blur(2px)}
+dialog .f{margin-bottom:11px}dialog label{font-size:.8rem;color:var(--mute);display:block;margin-bottom:3px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,40px);background:#1e2433;color:#fff;padding:10px 16px;border-radius:12px;opacity:0;transition:.3s;pointer-events:none;font-size:.9rem;z-index:99;max-width:90vw}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>💸 Money Explorer<small>Hostel &amp; personal budget · October 2026</small></h1>
+    <div style="display:flex;gap:8px">
+      <button class="btn ghost" id="resetBtn" title="Restore sample data, filter and slider">↺ Reset</button>
+      <button class="btn" id="addBtn">+ Add Expense</button>
+    </div>
+  </header>
+
+  <section class="grid stats" id="stats"></section>
+
+  <div class="grid main">
+    <section class="card dup full" id="dupCard"></section>
+
+    <section class="card">
+      <h2>Category breakdown</h2>
+      <div id="cats"></div>
+    </section>
+
+    <section class="card">
+      <h2>Spending by category <small style="font-weight:400;color:var(--mute)">(tap a bar to filter)</small></h2>
+      <div id="chart"></div>
+    </section>
+
+    <section class="card">
+      <h2>🎯 Savings target calculator</h2>
+      <div class="field">
+        <div><label for="income">Monthly allowance (₹)</label><input type="number" id="income" min="0" step="500" value="12000"></div>
+        <div><label>Savings target</label><div class="v" id="targetVal" style="font-size:1.3rem;font-weight:700;padding-top:4px"></div></div>
+      </div>
+      <input type="range" id="slider" min="0" max="12000" step="100" value="2000" aria-label="Savings target">
+      <div class="stack" id="stack"></div>
+      <div class="legend" id="legend"></div>
+      <div class="msg" id="saveMsg"></div>
+    </section>
+
+    <section class="card">
+      <h2>Transactions</h2>
+      <div class="tools">
+        <select id="filter" aria-label="Filter by category"></select>
+        <button class="btn ghost sm" id="clearFilter">Clear filter</button>
+        <span class="sp"></span>
+        <b id="listTotal"></b>
+      </div>
+      <div id="list"></div>
+    </section>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <h2>Add expense</h2>
+  <form id="form">
+    <div class="f"><label for="fd">Description</label><input type="text" id="fd" maxlength="40" required placeholder="e.g. Canteen dinner"></div>
+    <div class="f"><label for="fa">Amount (₹)</label><input type="number" id="fa" min="1" step="1" required placeholder="150"></div>
+    <div class="f"><label for="fc">Category</label><select id="fc"></select></div>
+    <div class="f"><label for="fdt">Date</label><input type="date" id="fdt" required></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button type="button" class="btn ghost" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn">Add</button>
+    </div>
+  </form>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const CATS=['Food','Books','Travel','Bills','Others'];
+const COL={Food:'#f59e0b',Books:'#6366f1',Travel:'#06b6d4',Bills:'#ef4444',Others:'#10b981'};
+const SEED=[
+ [1,'2026-10-01','Hostel mess fee','Food',3500],[2,'2026-10-03','Canteen lunch','Food',120],
+ [3,'2026-10-05','Engineering Maths textbook','Books',650],[4,'2026-10-06','Hostel Wi-Fi recharge','Bills',399],
+ [5,'2026-10-08','Bus to Kolkata','Travel',280],[6,'2026-10-09','Mobile recharge','Bills',299],
+ [7,'2026-10-11','Photocopy & notes','Books',85],[8,'2026-10-12','Swiggy – Biryani','Food',289],
+ [9,'2026-10-12','Swiggy – Biryani','Food',289],[10,'2026-10-14','Laundry','Others',150],
+ [11,'2026-10-16','Movie with friends','Others',240],[12,'2026-10-18','Metro card recharge','Travel',500],
+ [13,'2026-10-18','Metro card recharge','Travel',500],[14,'2026-10-20','Electricity share','Bills',450],
+ [15,'2026-10-22','Stationery','Books',210],[16,'2026-10-24','Chai & snacks','Food',95],
+ [17,'2026-10-26','Auto to station','Travel',120],[18,'2026-10-27','Haircut','Others',100]
+].map(([id,date,desc,cat,amt])=>({id,date,desc,cat,amt}));
+
+let tx,dismissed,filter,nextId,income,target;
+const $=id=>document.getElementById(id);
+const fmt=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dshort=d=>new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+
+function init(){
+  tx=SEED.map(t=>({...t}));dismissed=new Set();filter='All';nextId=100;income=12000;target=2000;
+  $('income').value=income;$('slider').max=income;$('slider').value=target;
+  $('filter').value='All';
+}
+const total=arr=>arr.reduce((s,t)=>s+t.amt,0);
+const byCat=()=>Object.fromEntries(CATS.map(c=>[c,total(tx.filter(t=>t.cat===c))]));
+
+function findDups(){
+  const seen={},out=[];
+  [...tx].sort((a,b)=>a.id-b.id).forEach(t=>{
+    const k=[t.date,t.cat,t.amt,t.desc.trim().toLowerCase()].join('|');
+    if(seen[k]){ if(!dismissed.has(t.id)) out.push({dup:t,orig:seen[k]}); } else seen[k]=t;
+  });
+  return out;
+}
+
+function renderStats(){
+  const spent=total(tx),left=income-target-spent;
+  $('stats').innerHTML=[
+    ['Total spent',fmt(spent),''],['Transactions',tx.length,''],
+    ['Biggest category',(()=>{const c=byCat();const m=CATS.reduce((a,b)=>c[a]>=c[b]?a:b);return spent?m+' · '+fmt(c[m]):'—'})(),''],
+    ['Free to spend',fmt(left),left<0?'color:var(--bad)':'color:var(--ok)']
+  ].map(([l,v,s])=>`<div class="card stat"><div class="l">${l}</div><div class="v" style="${s}">${v}</div></div>`).join('');
+}
+
+function renderDups(){
+  const d=findDups(),el=$('dupCard');
+  if(!d.length){el.innerHTML='<h2>⚠️ Possible duplicate transactions</h2><div class="none">✓ No unresolved duplicates found.</div>';return;}
+  el.innerHTML=`<h2>⚠️ Possible duplicate transactions (${d.length})</h2>`+d.map(({dup})=>`
+    <div class="dupitem"><div><b>${esc(dup.desc)}</b> · ${fmt(dup.amt)}
+      <small>${dshort(dup.date)} · ${dup.cat} — same item, date and amount appears twice</small></div>
+      <div class="actions">
+        <button class="btn danger sm" data-confirm="${dup.id}" title="Yes, it's a duplicate – remove it">Confirm</button>
+        <button class="btn ghost sm" data-dismiss="${dup.id}" title="Not a duplicate – keep it">Dismiss</button>
+      </div></div>`).join('')+
+    '<small style="color:var(--mute);display:block;margin-top:8px"><b>Confirm</b> removes the repeated entry · <b>Dismiss</b> keeps it and hides this warning.</small>';
+}
+
+function renderCats(){
+  const c=byCat(),sum=total(tx)||1;
+  $('cats').innerHTML=CATS.map(k=>{const p=c[k]/sum*100;return `
+   <div class="cat" data-cat="${k}" style="${filter!=='All'&&filter!==k?'opacity:.45':''}">
+     <div class="row"><span><i class="dot" style="background:${COL[k]}"></i>${k}</span><span><b>${fmt(c[k])}</b> · ${p.toFixed(0)}%</span></div>
+     <div class="track"><div class="fill" style="width:${p}%;background:${COL[k]}"></div></div></div>`}).join('');
+}
+
+function renderChart(){
+  const c=byCat(),max=Math.max(...Object.values(c),1)*1.15;
+  const W=500,H=260,pb=34,pt=22,bw=56,gap=(W-40-bw*5)/4;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bar chart of expenses by category">`;
+  for(let i=0;i<=4;i++){const y=pt+(H-pt-pb)*i/4;s+=`<line class="axis" x1="20" x2="${W-20}" y1="${y}" y2="${y}"/>`;}
+  CATS.forEach((k,i)=>{
+    const x=20+i*(bw+gap),h=(H-pt-pb)*c[k]/max,y=H-pb-h,dim=filter!=='All'&&filter!==k;
+    s+=`<rect class="bar" data-cat="${k}" x="${x}" y="${y}" width="${bw}" height="${Math.max(h,1)}" rx="8" fill="${COL[k]}" opacity="${dim?.3:1}" style="animation-delay:${i*70}ms"><title>${k}: ${fmt(c[k])}</title></rect>
+      <text class="val" x="${x+bw/2}" y="${y-6}" text-anchor="middle">${fmt(c[k])}</text>
+      <text class="lbl" x="${x+bw/2}" y="${H-12}" text-anchor="middle">${k}</text>`;
+  });
+  $('chart').innerHTML=s+'</svg>';
+}
+
+function renderSavings(){
+  const spent=total(tx),free=income-target-spent,avail=Math.max(income,1);
+  $('targetVal').textContent=fmt(target);
+  const sp=Math.min(spent,income-target>0?spent:0);
+  const pS=target/avail*100,pSp=Math.min(spent/avail*100,100-pS),pF=Math.max(100-pS-pSp,0);
+  $('stack').innerHTML=`<div style="width:${pS}%;background:var(--ok)"></div><div style="width:${pSp}%;background:var(--accent)"></div><div style="width:${pF}%;background:transparent"></div>`;
+  $('legend').innerHTML=`<span><i class="dot" style="background:var(--ok)"></i> Saved ${fmt(target)}</span><span><i class="dot" style="background:var(--accent)"></i> Spent ${fmt(spent)}</span><span><i class="dot" style="background:var(--line)"></i> Remaining ${fmt(Math.max(free,0))}</span>`;
+  const m=$('saveMsg');
+  if(free>=0){m.className='msg good';m.textContent=`On track! You can still spend ${fmt(free)} this month and hit your ${fmt(target)} goal.`;}
+  else{m.className='msg bad';m.textContent=`Over by ${fmt(-free)}. Lower the target or cut spending to protect your savings.`;}
+}
+
+function renderList(){
+  const rows=tx.filter(t=>filter==='All'||t.cat===filter).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  $('listTotal').textContent=(filter==='All'?'All':filter)+': '+fmt(total(rows));
+  $('list').innerHTML=rows.length?rows.map(t=>`
+    <div class="tx"><div class="info"><b>${esc(t.desc)}</b><small>${dshort(t.date)}<span class="tag" style="background:${COL[t.cat]}">${t.cat}</span></small></div>
+    <span class="amt">${fmt(t.amt)}</span><button class="x" data-del="${t.id}" aria-label="Delete">✕</button></div>`).join(''):'<div class="empty">No transactions in this category yet.</div>';
+}
+
+function render(){renderStats();renderDups();renderCats();renderChart();renderSavings();renderList();$('filter').value=filter;}
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2200);}
+function setFilter(f){filter=f;render();}
+
+/* events */
+$('filter').innerHTML='<option value="All">All categories</option>'+CATS.map(c=>`<option>${c}</option>`).join('');
+$('fc').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
+$('filter').onchange=e=>setFilter(e.target.value);
+$('clearFilter').onclick=()=>setFilter('All');
+$('slider').oninput=e=>{target=+e.target.value;renderStats();renderSavings();};
+$('income').oninput=e=>{income=Math.max(+e.target.value||0,0);$('slider').max=income;target=Math.min(target,income);$('slider').value=target;renderStats();renderSavings();};
+$('resetBtn').onclick=()=>{init();render();toast('Restored sample data, filter and savings target');};
+document.body.addEventListener('click',e=>{
+  const t=e.target.closest('[data-confirm],[data-dismiss],[data-del],[data-cat]');if(!t)return;
+  if(t.dataset.confirm){tx=tx.filter(x=>x.id!==+t.dataset.confirm);render();toast('Duplicate removed');}
+  else if(t.dataset.dismiss){dismissed.add(+t.dataset.dismiss);render();toast('Warning dismissed – transaction kept');}
+  else if(t.dataset.del){tx=tx.filter(x=>x.id!==+t.dataset.del);render();toast('Expense deleted');}
+  else if(t.dataset.cat){setFilter(filter===t.dataset.cat?'All':t.dataset.cat);}
+});
+/* modal */
+$('addBtn').onclick=()=>{$('form').reset();$('fdt').value='2026-10-29';$('dlg').showModal();$('fd').focus();};
+$('cancelBtn').onclick=()=>$('dlg').close();
+$('dlg').addEventListener('click',e=>{if(e.target===$('dlg'))$('dlg').close();});
+$('form').onsubmit=e=>{
+  e.preventDefault();
+  const desc=$('fd').value.trim(),amt=Math.round(+$('fa').value);
+  if(!desc||amt<=0)return;
+  tx.push({id:nextId++,date:$('fdt').value,desc,cat:$('fc').value,amt});
+  $('dlg').close();render();toast(`Added ${desc} · ${fmt(amt)}`);
+};
+
+init();render();
+</script>
+</body>
+</html>

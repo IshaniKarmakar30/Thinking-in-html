@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Interactive Solar System</title>
+<style>
+  :root{--bg:#05060f;--panel:#10132a;--line:#2a2f5a;--text:#e8ebff;--mute:#9aa3d6;--acc:#ffb703}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+  #app{display:flex;flex-direction:column;height:100%}
+  #stage{position:relative;flex:1;min-height:0}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  canvas.drag{cursor:grabbing}
+  #hint{position:absolute;left:12px;top:10px;font-size:12px;color:var(--mute);pointer-events:none;
+    background:rgba(16,19,42,.6);padding:5px 9px;border-radius:8px}
+  #controls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:center;
+    padding:10px 12px;background:var(--panel);border-top:1px solid var(--line)}
+  .group{display:flex;align-items:center;gap:6px}
+  button{background:#1b2050;color:var(--text);border:1px solid var(--line);border-radius:8px;
+    padding:8px 12px;font-size:14px;cursor:pointer;min-height:38px;min-width:38px}
+  button:hover{background:#262d6b}
+  button.on{background:var(--acc);color:#1a1200;border-color:var(--acc);font-weight:600}
+  label{font-size:13px;color:var(--mute);display:flex;align-items:center;gap:6px}
+  input[type=range]{accent-color:var(--acc);width:120px;height:30px}
+  #speedVal,#zoomVal{min-width:38px;color:var(--text);font-variant-numeric:tabular-nums}
+  #card{position:absolute;right:12px;top:12px;width:min(320px,calc(100% - 24px));
+    background:rgba(16,19,42,.96);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);display:none;max-height:calc(100% - 24px);overflow:auto}
+  #card.show{display:block;animation:pop .18s ease-out}
+  @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
+  #card h2{margin:0 0 2px;font-size:20px;display:flex;align-items:center;gap:8px}
+  #card .dot{width:14px;height:14px;border-radius:50%;display:inline-block}
+  #card .sub{color:var(--mute);font-size:12px;margin-bottom:10px}
+  #card dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0 0 10px;font-size:13px}
+  #card dt{color:var(--mute)} #card dd{margin:0}
+  #card ul{margin:0;padding-left:18px;font-size:13px;line-height:1.5}
+  #close{position:absolute;right:8px;top:8px;min-height:30px;min-width:30px;padding:2px 8px}
+  @media(max-width:600px){
+    #card{right:auto;left:12px;top:auto;bottom:12px;max-height:55%}
+    input[type=range]{width:100px}
+    #hint{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="hint">Tap a planet for info · drag to pan · pinch/scroll to zoom</div>
+    <div id="card" role="dialog" aria-live="polite">
+      <button id="close" aria-label="Close">✕</button>
+      <h2><span class="dot" id="cDot"></span><span id="cName"></span></h2>
+      <div class="sub" id="cType"></div>
+      <dl>
+        <dt>Distance from Sun</dt><dd id="cDist"></dd>
+        <dt>Diameter</dt><dd id="cDia"></dd>
+        <dt>Orbital period</dt><dd id="cPer"></dd>
+        <dt>Moons</dt><dd id="cMoons"></dd>
+      </dl>
+      <ul id="cFacts"></ul>
+    </div>
+  </div>
+  <div id="controls">
+    <div class="group">
+      <button id="play" class="on">⏸ Pause</button>
+    </div>
+    <div class="group">
+      <label>Speed <input type="range" id="speed" min="0.5" max="5" step="0.5" value="1"></label>
+      <span id="speedVal">1x</span>
+    </div>
+    <div class="group">
+      <button id="zout" aria-label="Zoom out">−</button>
+      <label><input type="range" id="zoom" min="0.4" max="4" step="0.05" value="1"></label>
+      <button id="zin" aria-label="Zoom in">+</button>
+      <span id="zoomVal">100%</span>
+    </div>
+    <div class="group">
+      <button id="tOrbit" class="on">Orbits</button>
+      <button id="tLabel" class="on">Labels</button>
+      <button id="reset">Reset view</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- Data (orbital radii & speeds are compressed for visibility, not to true scale) ----------
+  const PLANETS = [
+    {name:"Mercury", color:"#b5b5b5", r:4,  a:62,  period:88,    au:0.39, km:"57.9 million km",  dia:"4,879 km",   moons:0,  type:"Terrestrial planet",
+     facts:["Smallest planet and closest to the Sun.","Temperatures swing from −180°C to 430°C.","A year lasts only 88 Earth days."]},
+    {name:"Venus",   color:"#e8c27a", r:7,  a:95,  period:225,   au:0.72, km:"108.2 million km", dia:"12,104 km",  moons:0,  type:"Terrestrial planet",
+     facts:["Hottest planet (~465°C) due to a runaway greenhouse effect.","Rotates backwards compared with most planets.","A day on Venus is longer than its year."]},
+    {name:"Earth",   color:"#4f9dff", r:7.5,a:130, period:365,   au:1.00, km:"149.6 million km", dia:"12,742 km",  moons:1,  type:"Terrestrial planet",
+     facts:["The only known world with life.","About 71% of the surface is covered by water.","1 AU is defined by its average distance from the Sun."]},
+    {name:"Mars",    color:"#e0553a", r:5.5,a:168, period:687,   au:1.52, km:"227.9 million km", dia:"6,779 km",   moons:2,  type:"Terrestrial planet",
+     facts:["Home to Olympus Mons, the tallest volcano known.","Its red colour comes from iron oxide (rust).","A Martian day (sol) is about 24h 37m."]},
+    {name:"Jupiter", color:"#d9a066", r:15, a:235, period:4333,  au:5.20, km:"778.5 million km", dia:"139,820 km", moons:95, type:"Gas giant",
+     facts:["Largest planet: over 1,300 Earths could fit inside.","The Great Red Spot is a storm older than 150 years.","Its gravity shapes the asteroid belt."]},
+    {name:"Saturn",  color:"#ead6a1", r:13, a:300, period:10759, au:9.58, km:"1.43 billion km",  dia:"116,460 km", moons:146,type:"Gas giant", ring:true,
+     facts:["Famous rings are mostly water ice.","Less dense than water (it would float!).","Winds can reach about 1,800 km/h."]},
+    {name:"Uranus",  color:"#8fe3e8", r:10, a:355, period:30687, au:19.2, km:"2.87 billion km",  dia:"50,724 km",  moons:28, type:"Ice giant",
+     facts:["Spins on its side, tilted about 98°.","Has faint rings and a pale cyan methane haze.","Coldest planetary atmosphere (~−224°C)."]},
+    {name:"Neptune", color:"#3f5fe0", r:9.5,a:405, period:60190, au:30.1, km:"4.50 billion km",  dia:"49,244 km",  moons:16, type:"Ice giant",
+     facts:["Winds are the fastest in the Solar System (~2,100 km/h).","Discovered in 1846 using math predictions.","One orbit takes about 165 Earth years."]}
+  ];
+  const SUN = {name:"Sun", color:"#ffcf4a", r:26, km:"0 (center)", dia:"1,392,700 km", moons:"—", type:"G-type star",
+    period:"~230 million years (around the galaxy)",
+    facts:["Holds 99.86% of the Solar System's mass.","Surface temperature ≈ 5,500°C; core ≈ 15 million °C.","Light takes about 8 min 20 s to reach Earth."]};
+  const MAX_A = 405;
+  PLANETS.forEach((p,i) => {
+    p.angle = (i * 1.7) % (Math.PI*2);                     // staggered start positions
+    p.omega = 0.3 / Math.pow(p.period/365, 0.5);           // rad/s at 1x (compressed scale)
+    p.sx = 0; p.sy = 0; p.sr = 0;                          // cached screen position for hit tests
+  });
+
+  // ---------- Elements ----------
+  const $ = id => document.getElementById(id);
+  const canvas = $("c"), ctx = canvas.getContext("2d", {alpha:false});
+  const stage = $("stage"), card = $("card");
+  const playBtn = $("play"), speedEl = $("speed"), zoomEl = $("zoom");
+
+  // ---------- State ----------
+  const S = {playing:true, speed:1, zoom:1, panX:0, panY:0, orbits:true, labels:true,
+             selected:null, w:0, h:0, dpr:1, sunPulse:0};
+  let stars = null, lastT = 0, sunPos = {x:0,y:0,r:0};
+
+  // ---------- Sizing ----------
+  function resize(){
+    const r = stage.getBoundingClientRect();
+    S.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    S.w = Math.max(1, r.width); S.h = Math.max(1, r.height);
+    canvas.width = Math.round(S.w * S.dpr);
+    canvas.height = Math.round(S.h * S.dpr);
+    buildStars();
+  }
+  function buildStars(){                       // pre-render once -> cheap per frame
+    stars = document.createElement("canvas");
+    stars.width = canvas.width; stars.height = canvas.height;
+    const g = stars.getContext("2d");
+    g.fillStyle = "#05060f"; g.fillRect(0,0,stars.width,stars.height);
+    const n = Math.min(400, Math.floor(S.w * S.h / 3500));
+    for(let i=0;i<n;i++){
+      const a = Math.random()*0.7+0.2, s = Math.random()*1.4*S.dpr+0.3;
+      g.fillStyle = `rgba(255,255,255,${a})`;
+      g.fillRect(Math.random()*stars.width, Math.random()*stars.height, s, s);
+    }
+  }
+  new ResizeObserver(resize).observe(stage);
+
+  const baseScale = () => Math.min(S.w, S.h) / 2 / (MAX_A + 40);
+
+  // ---------- Rendering ----------
+  function draw(){
+    const d = S.dpr;
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.drawImage(stars, 0, 0);
+    ctx.setTransform(d,0,0,d,0,0);
+
+    const cx = S.w/2 + S.panX, cy = S.h/2 + S.panY;
+    const sc = baseScale() * S.zoom;
+    const rs = Math.pow(S.zoom, 0.6) * baseScale() * 1.6 + 0.35;  // body-size scale (grows slower than orbits)
+    const bodyScale = Math.max(0.55, Math.min(rs * 1.9, 3.2));
+
+    // Orbits
+    if(S.orbits){
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(140,155,230,0.25)";
+      ctx.beginPath();
+      for(const p of PLANETS){
+        ctx.moveTo(cx + p.a*sc, cy);
+        ctx.arc(cx, cy, p.a*sc, 0, 6.2832);
+      }
+      ctx.stroke();
+    }
+
+    // Sun
+    const sr = SUN.r * bodyScale * 0.8;
+    sunPos = {x:cx, y:cy, r:sr};
+    const glow = ctx.createRadialGradient(cx,cy,sr*0.3,cx,cy,sr*3.2);
+    glow.addColorStop(0,"rgba(255,200,60,.55)"); glow.addColorStop(1,"rgba(255,160,20,0)");
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx,cy,sr*3.2,0,6.2832); ctx.fill();
+    const sg = ctx.createRadialGradient(cx-sr*.3,cy-sr*.3,sr*.1,cx,cy,sr);
+    sg.addColorStop(0,"#fff6c8"); sg.addColorStop(.5,"#ffcf4a"); sg.addColorStop(1,"#ff9a1f");
+    ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(cx,cy,sr,0,6.2832); ctx.fill();
+    if(S.labels) label("Sun", cx, cy + sr + 14, "#ffe29a");
+
+    // Planets
+    for(const p of PLANETS){
+      const x = cx + Math.cos(p.angle) * p.a * sc;
+      const y = cy + Math.sin(p.angle) * p.a * sc;
+      const r = Math.max(2.2, p.r * bodyScale * 0.8);
+      p.sx = x; p.sy = y; p.sr = r;
+
+      if(p.ring){                                   // back half of ring
+        ctx.strokeStyle = "rgba(220,200,150,.75)"; ctx.lineWidth = Math.max(1.5, r*0.28);
+        ctx.beginPath(); ctx.ellipse(x,y,r*1.9,r*0.55,-0.35,Math.PI,6.2832); ctx.stroke();
+      }
+      const g = ctx.createRadialGradient(x - r*.35, y - r*.35, r*.1, x, y, r);
+      g.addColorStop(0, lighten(p.color)); g.addColorStop(1, p.color);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,r,0,6.2832); ctx.fill();
+      // night-side shading away from Sun
+      const ang = Math.atan2(y-cy, x-cx);
+      ctx.fillStyle = "rgba(0,0,10,.38)";
+      ctx.beginPath(); ctx.arc(x,y,r,ang-Math.PI/2,ang+Math.PI/2); ctx.fill();
+      if(p.ring){                                   // front half of ring
+        ctx.strokeStyle = "rgba(220,200,150,.85)"; ctx.lineWidth = Math.max(1.5, r*0.28);
+        ctx.beginPath(); ctx.ellipse(x,y,r*1.9,r*0.55,-0.35,0,Math.PI); ctx.stroke();
+      }
+      if(S.selected === p){
+        ctx.strokeStyle = "#ffb703"; ctx.lineWidth = 2;
+        ctx.setLineDash([4,3]); ctx.beginPath(); ctx.arc(x,y,r+7,0,6.2832); ctx.stroke(); ctx.setLineDash([]);
+      }
+      if(S.labels) label(p.name, x, y + r + (p.ring ? 18 : 13), "#dfe4ff");
+    }
+  }
+  function label(t,x,y,c){
+    ctx.font = "12px system-ui,sans-serif"; ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(5,6,15,.7)"; ctx.fillText(t, x+1, y+1);
+    ctx.fillStyle = c; ctx.fillText(t, x, y);
+  }
+  const lcache = {};
+  function lighten(hex){
+    if(lcache[hex]) return lcache[hex];
+    const n = parseInt(hex.slice(1),16);
+    const f = v => Math.min(255, v + 70);
+    return lcache[hex] = `rgb(${f(n>>16)},${f((n>>8)&255)},${f(n&255)})`;
+  }
+
+  // ---------- Animation loop (requestAnimationFrame, delta-time based) ----------
+  function frame(t){
+    const dt = Math.min((t - lastT) / 1000, 0.05);   // clamp so tab-switch never causes a jump
+    lastT = t;
+    if(S.playing){
+      const k = dt * S.speed;
+      for(const p of PLANETS){ p.angle += p.omega * k; if(p.angle > 6.2832) p.angle -= 6.2832; }
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Info card ----------
+  function showCard(o){
+    S.selected = (o === SUN) ? null : o;
+    const isSun = o === SUN;
+    $("cName").textContent = o.name;
+    $("cDot").style.background = o.color;
+    $("cType").textContent = o.type;
+    $("cDist").textContent = isSun ? "— (center)" : `${o.km} (${o.au} AU)`;
+    $("cDia").textContent = o.dia;
+    $("cPer").textContent = isSun ? o.period : fmtPeriod(o.period);
+    $("cMoons").textContent = o.moons;
+    $("cFacts").innerHTML = o.facts.map(f => `<li>${f}</li>`).join("");
+    card.classList.add("show");
+  }
+  function fmtPeriod(d){ return d >= 730 ? `${(d/365.25).toFixed(1)} Earth years` : `${d} Earth days`; }
+  function hideCard(){ card.classList.remove("show"); S.selected = null; }
+  $("close").onclick = hideCard;
+
+  // ---------- Pointer input: click/tap select, drag pan, pinch zoom ----------
+  const ptrs = new Map(); let downPos = null, moved = false, pinchD = 0;
+  canvas.addEventListener("pointerdown", e => {
+    canvas.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if(ptrs.size === 1){ downPos = {x:e.clientX, y:e.clientY}; moved = false; }
+    if(ptrs.size === 2){ pinchD = dist2(); moved = true; }
+  });
+  canvas.addEventListener("pointermove", e => {
+    const p = ptrs.get(e.pointerId); if(!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    if(ptrs.size === 1){
+      if(!moved && Math.hypot(e.clientX-downPos.x, e.clientY-downPos.y) > 6){ moved = true; canvas.classList.add("drag"); }
+      if(moved){ S.panX += dx; S.panY += dy; }
+    } else if(ptrs.size === 2){
+      const nd = dist2(); if(pinchD > 0) setZoom(S.zoom * nd / pinchD); pinchD = nd;
+    }
+  });
+  const end = e => {
+    if(ptrs.has(e.pointerId) && ptrs.size === 1 && !moved && e.type === "pointerup"){
+      const r = canvas.getBoundingClientRect(); pick(e.clientX - r.left, e.clientY - r.top);
+    }
+    ptrs.delete(e.pointerId); pinchD = 0; canvas.classList.remove("drag");
+  };
+  canvas.addEventListener("pointerup", end);
+  canvas.addEventListener("pointercancel", end);
+  canvas.addEventListener("wheel", e => { e.preventDefault(); setZoom(S.zoom * (e.deltaY < 0 ? 1.1 : 1/1.1)); }, {passive:false});
+  function dist2(){ const [a,b] = [...ptrs.values()]; return Math.hypot(a.x-b.x, a.y-b.y); }
+
+  function pick(x,y){
+    let best = null, bd = Infinity;
+    for(const p of PLANETS){
+      const d = Math.hypot(x-p.sx, y-p.sy), hit = Math.max(p.sr + 8, 18);   // generous touch target
+      if(d < hit && d < bd){ bd = d; best = p; }
+    }
+    if(!best && Math.hypot(x-sunPos.x, y-sunPos.y) < Math.max(sunPos.r, 20)) best = SUN;
+    best ? showCard(best) : hideCard();
+  }
+
+  // ---------- Controls ----------
+  function setZoom(z){
+    S.zoom = Math.max(0.4, Math.min(4, z));
+    zoomEl.value = S.zoom; $("zoomVal").textContent = Math.round(S.zoom*100) + "%";
+  }
+  playBtn.onclick = () => {
+    S.playing = !S.playing;
+    playBtn.textContent = S.playing ? "⏸ Pause" : "▶ Play";
+    playBtn.classList.toggle("on", S.playing);
+  };
+  speedEl.oninput = () => { S.speed = +speedEl.value; $("speedVal").textContent = S.speed + "x"; };
+  zoomEl.oninput = () => setZoom(+zoomEl.value);
+  $("zin").onclick = () => setZoom(S.zoom * 1.25);
+  $("zout").onclick = () => setZoom(S.zoom / 1.25);
+  $("tOrbit").onclick = e => { S.orbits = !S.orbits; e.currentTarget.classList.toggle("on", S.orbits); };
+  $("tLabel").onclick = e => { S.labels = !S.labels; e.currentTarget.classList.toggle("on", S.labels); };
+  $("reset").onclick = () => { S.panX = S.panY = 0; setZoom(1); };
+  window.addEventListener("keydown", e => {
+    if(e.code === "Space" && e.target.tagName !== "BUTTON"){ e.preventDefault(); playBtn.click(); }
+  });
+
+  resize();
+  requestAnimationFrame(t => { lastT = t; frame(t); });
+})();
+</script>
+</body>
+</html>

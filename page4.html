@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tech Path Decision Helper</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#fff; --text:#1b2236; --muted:#6b7490; --line:#e3e7f1;
+    --accent:#5b5bf0; --gold:#f5b301; --track:#e9ecf6; --shadow:0 4px 14px rgba(30,40,90,.08);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#10131c; --card:#1a1f2d; --text:#eef1fa; --muted:#98a2c0; --line:#2a3145; --track:#2a3145; --shadow:0 4px 14px rgba(0,0,0,.4);}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);padding:16px}
+  .wrap{max-width:1100px;margin:0 auto}
+  h1{font-size:1.5rem;margin:4px 0}
+  .sub{color:var(--muted);margin:0 0 16px;font-size:.92rem}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:18px}
+  .panel-head{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .panel-head h2{font-size:1.05rem;margin:0}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);padding:8px 14px;border-radius:10px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .weights{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 22px}
+  .w-row label{display:flex;justify-content:space-between;font-size:.9rem;font-weight:600;margin-bottom:4px}
+  .w-row label span{color:var(--accent)}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);position:relative;will-change:transform}
+  .card.top{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),var(--shadow)}
+  .card-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .rank{background:var(--track);border-radius:8px;min-width:32px;text-align:center;padding:4px 6px;font-weight:700;font-size:.85rem}
+  .name{flex:1;min-width:0;font:inherit;font-weight:700;font-size:1.05rem;color:var(--text);background:transparent;border:1px dashed transparent;border-radius:8px;padding:4px 6px}
+  .name:hover,.name:focus{border-color:var(--accent);outline:none}
+  .del{padding:2px 8px;color:var(--muted)}
+  .badge{display:none;background:var(--gold);color:#4a3500;font-size:.72rem;font-weight:800;padding:3px 9px;border-radius:99px;margin-bottom:8px;width:fit-content}
+  .card.top .badge{display:block}
+  .score{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
+  .score b{font-size:2rem}
+  .score small{color:var(--muted)}
+  .meter{height:10px;background:var(--track);border-radius:99px;overflow:hidden;margin-bottom:12px}
+  .meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7c7cf8,#5b5bf0);border-radius:99px;transition:width .4s ease}
+  .card.top .meter i{background:linear-gradient(90deg,#f7c948,#f5a000)}
+  .crit{margin-top:8px}
+  .crit label{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:12px}
+  @media (prefers-reduced-motion:reduce){.card,.meter i{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧭 Tech Path Decision Helper</h1>
+  <p class="sub">Set how much each criterion matters to you. Cards re-rank live. Edit names and 1–10 ratings right on each card.</p>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Criteria weights</h2>
+      <div class="btns">
+        <button class="primary" id="addBtn">＋ Add Option</button>
+        <button id="resetBtn">↺ Reset Weights</button>
+      </div>
+    </div>
+    <div class="weights" id="weights"></div>
+  </section>
+
+  <section class="cards" id="cards"></section>
+  <p class="hint">Score = weighted average of ratings, shown out of 100. "Learning Curve" is rated by ease (10 = easiest). Ratings are my rough starting estimates, so adjust them to your own view.</p>
+</div>
+
+<script>
+const CRITERIA=[
+  {k:'learn',label:'Learning Curve (ease)',def:60},
+  {k:'demand',label:'Market Demand',def:80},
+  {k:'salary',label:'Salary Potential',def:70},
+  {k:'interest',label:'Personal Interest',def:90}
+];
+const weights={};
+CRITERIA.forEach(c=>weights[c.k]=c.def);
+
+let nextId=5;
+const options=[
+  {id:1,name:'Full Stack Web',scores:{learn:7,demand:9,salary:7,interest:6}},
+  {id:2,name:'AI / ML',scores:{learn:4,demand:9,salary:9,interest:8}},
+  {id:3,name:'Cloud DevOps',scores:{learn:5,demand:8,salary:8,interest:5}},
+  {id:4,name:'Mobile App Dev',scores:{learn:7,demand:7,salary:7,interest:7}}
+];
+const els={}; // id -> card element
+
+const $=s=>document.querySelector(s);
+const cardsBox=$('#cards');
+
+// ---- weight sliders ----
+function buildWeights(){
+  const box=$('#weights'); box.innerHTML='';
+  CRITERIA.forEach(c=>{
+    const row=document.createElement('div'); row.className='w-row';
+    row.innerHTML=`<label>${c.label}<span id="wv-${c.k}">${weights[c.k]}%</span></label>
+      <input type="range" min="0" max="100" value="${weights[c.k]}" id="w-${c.k}" aria-label="${c.label} weight">`;
+    box.appendChild(row);
+    row.querySelector('input').addEventListener('input',e=>{
+      weights[c.k]=+e.target.value;
+      $('#wv-'+c.k).textContent=weights[c.k]+'%';
+      update();
+    });
+  });
+}
+$('#resetBtn').onclick=()=>{
+  CRITERIA.forEach(c=>{
+    weights[c.k]=c.def;
+    $('#w-'+c.k).value=c.def;
+    $('#wv-'+c.k).textContent=c.def+'%';
+  });
+  update();
+};
+
+// ---- cards ----
+function buildCard(o){
+  const el=document.createElement('article'); el.className='card';
+  el.innerHTML=`
+    <div class="card-top">
+      <span class="rank">#1</span>
+      <input class="name" value="" aria-label="Option name" maxlength="30">
+      <button class="del" title="Remove option" aria-label="Remove option">✕</button>
+    </div>
+    <div class="badge">🏆 TOP RANKED</div>
+    <div class="score"><b>0</b><small>/ 100</small></div>
+    <div class="meter"><i></i></div>
+    ${CRITERIA.map(c=>`
+      <div class="crit"><label>${c.label}<span class="sv-${c.k}">${o.scores[c.k]}/10</span></label>
+      <input type="range" min="1" max="10" value="${o.scores[c.k]}" data-k="${c.k}" aria-label="${o.name} ${c.label}"></div>`).join('')}`;
+  const nameIn=el.querySelector('.name');
+  nameIn.value=o.name;
+  nameIn.addEventListener('input',()=>{o.name=nameIn.value||'Untitled';});
+  el.querySelectorAll('[data-k]').forEach(r=>r.addEventListener('input',()=>{
+    o.scores[r.dataset.k]=+r.value;
+    el.querySelector('.sv-'+r.dataset.k).textContent=r.value+'/10';
+    update();
+  }));
+  el.querySelector('.del').onclick=()=>{
+    if(options.length<=2){alert('Keep at least 2 options to compare.');return;}
+    options.splice(options.indexOf(o),1);
+    el.remove(); delete els[o.id]; update();
+  };
+  els[o.id]=el; cardsBox.appendChild(el);
+}
+
+function calc(o){
+  const total=CRITERIA.reduce((s,c)=>s+weights[c.k],0);
+  if(!total) return 0;
+  return CRITERIA.reduce((s,c)=>s+weights[c.k]*o.scores[c.k],0)/total*10;
+}
+
+function update(){
+  const ranked=options.map(o=>({o,s:calc(o)})).sort((a,b)=>b.s-a.s);
+  // FLIP: record first positions
+  const first={};
+  ranked.forEach(({o})=>{const r=els[o.id].getBoundingClientRect();first[o.id]=r;});
+  const anyWeight=CRITERIA.some(c=>weights[c.k]>0);
+  ranked.forEach(({o,s},i)=>{
+    const el=els[o.id];
+    el.querySelector('.rank').textContent='#'+(i+1);
+    el.querySelector('.score b').textContent=s.toFixed(1);
+    el.querySelector('.meter i').style.width=s+'%';
+    el.classList.toggle('top',i===0&&anyWeight);
+    cardsBox.appendChild(el); // reorders DOM
+  });
+  // Last + Invert + Play
+  ranked.forEach(({o})=>{
+    const el=els[o.id], last=el.getBoundingClientRect(), f=first[o.id];
+    const dx=f.left-last.left, dy=f.top-last.top;
+    if(!dx&&!dy) return;
+    el.style.transition='none';
+    el.style.transform=`translate(${dx}px,${dy}px)`;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      el.style.transition='transform .5s cubic-bezier(.2,.8,.2,1)';
+      el.style.transform='';
+    }));
+  });
+}
+
+// ---- add option ----
+$('#addBtn').onclick=()=>{
+  const name=prompt('Name of the new option (e.g. Cybersecurity):');
+  if(!name||!name.trim()) return;
+  const o={id:nextId++,name:name.trim().slice(0,30),scores:{learn:5,demand:5,salary:5,interest:5}};
+  options.push(o); buildCard(o); update();
+};
+
+buildWeights();
+options.forEach(buildCard);
+update();
+</script>
+</body>
+</html>
