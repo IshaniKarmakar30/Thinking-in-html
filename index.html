@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thinking in HTML - Project Showcase</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      text-align: center;
+      color: #38bdf8;
+    }
+    p {
+      color: #94a3b8;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      color: #f8fafc;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .card:hover {
+      background: #38bdf8;
+      color: #0f172a;
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+  <h1>Thinking in HTML</h1>
+  <p>Select an interactive project to view live:</p>
+  <div class="grid">
+    <a class="card" href="page1.html">1. Revision & Teaching Dashboard <span>&rarr;</span></a>
+    <a class="card" href="page2.html">2. Money Explorer <span>&rarr;</span></a>
+    <a class="card" href="page3.html">3. Interactive 2D/3D Model <span>&rarr;</span></a>
+    <a class="card" href="page4.html">4. Decision Helper <span>&rarr;</span></a>
+    <a class="card" href="page5.html">5. Interactive Presentation <span>&rarr;</span></a>
+  </div>
+</body>
+</html>
